@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGB Polymarket Sprint Trader v6.3 — 5min Quick / 15min Full</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d29; --card-alt: #1e2235; --border: #2a2e3f;
+    --text: #e1e5f0; --dim: #8891a8; --accent: #E8571F; --accent-dim: rgba(232,87,31,0.15);
+    --green: #22c55e; --green-dim: #166534; --red: #ef4444; --red-dim: #7f1d1d;
+    --blue: #0EA5E9; --purple: #a855f7; --yellow: #eab308; --yellow-dim: #78350f; --orange: #f97316; --navy: #1A1A2E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; min-height: 100vh; max-width: 1200px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .stat-label { color: var(--dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat-value { font-size: 24px; font-weight: 700; font-family: 'SF Mono', monospace; margin-top: 2px; }
+  .stat-sub { color: var(--dim); font-size: 11px; margin-top: 2px; }
+  .badge { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .schedule-row { display: flex; gap: 6px; }
+  .schedule-item { flex: 1; padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border); }
+  .schedule-item.next { background: var(--accent-dim); border-color: var(--accent); }
+  .schedule-item.done { background: var(--card-alt); }
+  .run-row { display: grid; grid-template-columns: 90px 42px 42px 42px 36px 42px 62px 58px 58px; padding: 5px 6px; border-radius: 4px; font-size: 12px; align-items: center; }
+  .run-row.alt { background: var(--card-alt); }
+  .run-header { font-size: 10px; color: var(--dim); font-weight: 600; padding: 0 6px 6px; }
+  .pos-row { padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+  .pos-row.alt { background: var(--card-alt); }
+  .log-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+  .log-row.alt { background: var(--card-alt); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .badge-auto { margin-left: 6px; padding: 1px 5px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-size: 9px; font-weight: 600; }
+  .window-box { flex: 1; padding: 10px 4px; border-radius: 6px; text-align: center; background: var(--bg); border: 1px solid var(--border); }
+  .window-box.active { border-width: 2px; }
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  canvas { display: block; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    body { padding: 10px; }
+    h1 { font-size: 17px !important; }
+    .grid-2 { grid-template-columns: 1fr !important; }
+    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important; gap: 6px !important; }
+    .stat { padding: 10px 12px !important; }
+    .stat-value { font-size: 18px !important; }
+    .stat-label { font-size: 9px !important; }
+    .stat-sub { font-size: 9px !important; }
+    .badge { font-size: 10px !important; padding: 4px 8px !important; }
+    .section-title { font-size: 11px !important; }
+    .schedule-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .run-row { grid-template-columns: 70px 34px 34px 34px 30px 34px 52px 48px 50px !important; font-size: 10px !important; padding: 4px !important; }
+    .run-header { font-size: 8px !important; }
+    .pos-row { font-size: 11px !important; padding: 6px 8px !important; }
+    .log-row { font-size: 10px !important; }
+    .card { padding: 10px !important; border-radius: 8px !important; }
+    .window-box { padding: 6px 2px !important; font-size: 10px !important; }
+    canvas { max-height: 130px !important; }
+    #trade-log { max-height: 180px !important; }
+  }
+  @media (max-width: 768px) {
+    /* Header stacks vertically on mobile */
+    body > div:first-child { flex-direction: column !important; gap: 8px !important; align-items: flex-start !important; }
+    /* Footer stacks */
+    body > div:last-of-type { flex-direction: column !important; gap: 4px !important; }
+    /* Schedule section title wraps */
+    .card > div:first-child { flex-direction: column !important; gap: 4px !important; align-items: flex-start !important; }
+  }
+  @media (max-width: 480px) {
+    body { padding: 6px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .stat-value { font-size: 16px !important; }
+    .run-row { grid-template-columns: 60px 30px 30px 30px 28px 30px 46px 44px 44px !important; font-size: 9px !important; }
+    h1 { font-size: 15px !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700"><span style="color:var(--accent)">&#9670;</span> DGB Polymarket Sprint Trader</h1>
+    <div id="header-sub" style="color:var(--dim);font-size:12px;margin-top:3px"></div>
+  </div>
+  <div class="badge" style="background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent)">&#9679; 10x VELOCITY &mdash; WEEK <span id="header-week">1</span> &middot; 5min &middot; 15min</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid" id="stats-grid"></div>
+
+<!-- Schedule Timeline -->
+<div class="card" style="margin-bottom:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <h3 class="section-title" style="margin:0">Schedule (Quick 5min · Full 15min · 384x Daily CDT) — 10x VELOCITY</h3>
+    <span style="font-size:11px;color:var(--dim)">Runs while Cowork is active</span>
+  </div>
+  <div class="schedule-row" id="schedule-row"></div>
+</div>
+
+<!-- Row: Equity + Resolution Windows -->
+<div class="grid-2" style="margin-bottom:14px">
+  <div class="card">
+    <h3 class="section-title">Equity Curve (Per Run)</h3>
+    <canvas id="equityChart" height="170"></canvas>
+  </div>
+  <div class="card">
+    <h3 class="section-title">Resolution Windows (CDT)</h3>
+    <div style="display:flex;gap:4px;margin-bottom:8px" id="window-boxes"></div>
+    <div id="window-info" style="font-size:10px;color:var(--dim);padding:6px 8px;background:var(--bg);border-radius:6px;line-height:1.4"></div>
+  </div>
+</div>
+
+<!-- Row: Run History + Open Positions -->
+<div class="grid-2" style="margin-bottom:14px">
+  <div class="card">
+    <h3 class="section-title">Run History</h3>
+    <div id="run-history" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
+  </div>
+  <div class="card">
+    <h3 class="section-title" id="positions-title">Open Positions (0)</h3>
+    <div id="open-positions"></div>
+  </div>
+</div>
+
+<!-- Row: Trade Log + Type Mix -->
+<div class="grid-2" style="margin-bottom:14px">
+  <div class="card">
+    <h3 class="section-title">Trade Log</h3>
+    <div id="trade-log" style="max-height:240px;overflow-y:auto"></div>
+  </div>
+  <div class="card">
+    <h3 class="section-title">Market Type Mix</h3>
+    <div style="display:flex;align-items:center;gap:16px">
+      <canvas id="pieChart" width="160" height="160" style="flex-shrink:0"></canvas>
+      <div id="type-legend" style="flex:1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="card" style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">
+  <span>DGB Polymarket Sprint Trader v6.3 &middot; 46 Modules &middot; 5-Agent Swarm &middot; XGBoost 330-Tree &middot; Scalper &middot; LunarCrush &middot; MT Newswires &middot; &#8634;5m/15m &middot; Paper</span>
+  <span id="footer-refresh">Armorstack Research &middot; Data as of 2026-03-16 04:41 PM CDT &middot; Auto-refreshes every 5 min</span>
+</div>
+
+<script>
+const GAMMA_API = "https://gamma-api.polymarket.com";
+const CDT_OFFSET = -5;
+const TYPE_COLORS = {
+  crypto_micro: "#f59e0b", sports_tonight: "#22c55e", sports_international: "#10b981",
+  weather_daily: "#0EA5E9", esports: "#a855f7", earnings_events: "#ec4899",
+  daily_binary: "#6366f1", intl_politics_events: "#f97316", intl_finance: "#14b8a6",
+};
+const WINDOW_COLORS = {
+  LATE_NIGHT: "#6366f1", EARLY_AM: "#f59e0b", MORNING: "#0EA5E9",
+  AFTERNOON: "#22c55e", EVENING: "#ec4899",
+};
+const WINDOW_ORDER = ["EARLY_AM", "MORNING", "AFTERNOON", "EVENING", "LATE_NIGHT"];
+
+var SCHEDULE = [];
+for (var _h = 0; _h < 24; _h++) {
+  var _hr12 = _h === 0 ? 12 : _h > 12 ? _h - 12 : _h;
+  SCHEDULE.push({ time: _hr12 + (_h >= 12 ? "p" : "a"), hour: _h, label: _hr12 + ":00" });
+}
+
+const SCHEDULE_HISTORY = [{"run":"2026-03-19 08:18","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 08:13","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 08:02","scanned":44,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 08:08","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 08:03","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:58","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":231.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:53","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:48","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:43","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:38","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:33","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:27","scanned":14,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":""},{"run":"2026-03-19 07:28","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:23","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:18","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:13","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:08","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 07:03","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:58","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:53","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:48","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:43","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:34","scanned":14,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":""},{"run":"2026-03-19 06:38","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:33","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:28","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:23","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:20","scanned":2,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:18","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:17","scanned":1,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:13","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:12","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:08","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 06:03","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:52","scanned":30,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:58","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:53","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:48","scanned":14,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":""},{"run":"2026-03-19 05:48","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:43","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:38","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:31","scanned":19,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":100.0,"heat":"NORMAL","version":""},{"run":"2026-03-19 05:33","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:28","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:23","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:18","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:13","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"},{"run":"2026-03-19 05:08","scanned":0,"signals":0,"traded":0,"exits":0,"resolved":0,"pnl":0.0,"cash":246.39,"heat":"NORMAL","version":"6.3"}];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const SIM_STATE = {"cash":231.39,"starting_capital":100.0,"total_trades":51,"positions":{"c6eb967":{"question":"Counter-Strike: Vitality vs 9z - Map 1 Winner","direction":"yes","shares":23.3,"entry_price":0.825,"amount_risked":19.25,"ev_at_entry":0.05,"confidence":"medium","sprint_type":"daily_binary","resolve_window":"UNKNOWN"},"610b22a":{"question":"Will Olympique Lyonnais win on 2026-03-19?","direction":"yes","shares":16.8,"entry_price":0.475,"amount_risked":8.0,"ev_at_entry":0.105,"confidence":"medium","sprint_type":"daily_binary","resolve_window":"UNKNOWN"},"29b0b95":{"question":"Sabres vs. Sharks: O/U 6.5","direction":"yes","shares":9.2,"entry_price":0.545,"amount_risked":5.0,"ev_at_entry":0.055,"confidence":"medium","sprint_type":"daily_binary","resolve_window":"UNKNOWN"},"8091bcc":{"question":"Will EC Vitória win on 2026-03-19?","direction":"yes","shares":39.3,"entry_price":0.215,"amount_risked":8.44,"ev_at_entry":0.0255,"confidence":0.6,"sprint_type":"daily_binary","resolve_window":"UNKNOWN"},"4af9e89":{"question":"Aston Villa FC vs. Lille OSC: O/U 3.5","direction":"no","shares":21.0,"entry_price":0.714,"amount_risked":15.0,"ev_at_entry":0.1069,"confidence":"low","sprint_type":"daily_binary","resolve_window":"UNKNOWN"}},"sharpe":-69.18,"max_dd_pct":0.47,"win_rate":50.0,"profit_factor":0.51,"days_to_10x":5.3,"daily_growth_pct":54.455,"tail_bet_count":2,"tail_bet_pnl":-0.65,"heat_level":"NORMAL","heat_sizing_mult":1.0,"heat_drawdown_pct":0.1193,"calibration_samples":0,"calibration_active":false,"ensemble_forecasts":0,"model_scores":{},"category_exposure":{},"version":"6.3"};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const SIM_HISTORY = [{"action":"AUTO_BUY","question":"Will the highest temperature in Lucknow be 33°C or below on March 18?","run":"22:11","pnl":null,"amount_risked":0,"confidence":"high","category":"weather"},{"action":"AUTO_BUY","question":"Will the highest temperature in London be 16°C on March 17?","run":"22:11","pnl":null,"amount_risked":0,"confidence":"high","category":"weather"},{"action":"AUTO_BUY","question":"Spread: Grizzlies (-3.5)","run":"23:55","pnl":null,"amount_risked":0.31,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the price of Ethereum be between $2,100 and $2,200 on March 18?","run":"23:55","pnl":null,"amount_risked":0.24,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will Venezia FC vs. Calcio Padova end in a draw?","run":"23:55","pnl":null,"amount_risked":0.26,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"S&P 500 (SPX) Up or Down on March 17?","run":"23:55","pnl":null,"amount_risked":0.95,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Game Handicap: BLG (-2.5) vs G2 Esports (+2.5)","run":"23:55","pnl":null,"amount_risked":0.53,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will FK Bodø/Glimt win on 2026-03-17?","run":"09:04","pnl":null,"amount_risked":0.42,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Giannis Antetokounmpo: Rebounds O/U 8.5","run":"09:04","pnl":null,"amount_risked":0.26,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the price of Bitcoin be above $72,000 on March 18?","run":"09:04","pnl":null,"amount_risked":0.23,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Manchester City FC vs. Real Madrid CF: O/U 4.5","run":"09:04","pnl":null,"amount_risked":0.49,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Games Total: O/U 2.5","run":"09:04","pnl":null,"amount_risked":0.47,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Solana Up or Down on March 17?","run":"10:04","pnl":null,"amount_risked":2.56,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will Kocaelispor win on 2026-03-18?","run":"10:04","pnl":null,"amount_risked":0.43,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the price of Ethereum be above $2,100 on March 17?","run":"10:04","pnl":null,"amount_risked":0.18,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the price of XRP be between $1.00 and $1.10 on March 18?","run":"10:04","pnl":null,"amount_risked":0.13,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Fed rate cut by March 2026 meeting?","run":"10:04","pnl":null,"amount_risked":0.56,"confidence":"high","category":""},{"action":"RESOLVED","question":"Games Total: O/U 2.5","run":"09:04","outcome":"LOSS","pnl":-0.47,"amount_risked":null},{"action":"RESOLVED","question":"Solana Up or Down on March 17?","run":"10:04","outcome":"WIN","pnl":0.25,"amount_risked":null},{"action":"RESOLVED","question":"Will the price of Ethereum be above $2,100 on March 17?","run":"10:04","outcome":"LOSS","pnl":-0.18,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the price of Ethereum be between $2,100 and $2,200 on March 18?","run":"14:44","exit_type":"STOP_LOSS","pnl":-0.16,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will FK Bodø/Glimt win on 2026-03-17?","run":"14:44","exit_type":"STOP_LOSS","pnl":-0.42,"amount_risked":null},{"action":"AUTO_EXIT","question":"Giannis Antetokounmpo: Rebounds O/U 8.5","run":"14:44","exit_type":"PROFIT_TARGET","pnl":0.27,"amount_risked":null},{"action":"AUTO_BUY","question":"Spread: Grizzlies (-2.5)","run":"14:47","pnl":null,"amount_risked":0.28,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Exact Score: Manchester City FC 3 - 1 Real Madrid CF?","run":"14:47","pnl":null,"amount_risked":0.51,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Counter-Strike: Leo Team vs Rune Eaters (BO3) - NODWIN Clutch Series Group Stage","run":"14:47","pnl":null,"amount_risked":1.73,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Liverpool FC vs. Galatasaray SK: O/U 4.5","run":"14:47","pnl":null,"amount_risked":0.49,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the price of Bitcoin be above $74,000 on March 18?","run":"14:47","pnl":null,"amount_risked":0.52,"confidence":"high","category":""},{"action":"AUTO_EXIT","question":"S&P 500 (SPX) Up or Down on March 17?","run":"14:58","exit_type":"TIME_DECAY_EXIT","pnl":0.27,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the price of XRP be between $1.00 and $1.10 on March 18?","run":"14:58","exit_type":"STOP_LOSS","pnl":-0.07,"amount_risked":null},{"action":"AUTO_BUY","question":"Will Tesla (TSLA) close above $400 on March 17?","run":"15:01","pnl":null,"amount_risked":0.2,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will Google (GOOGL) close above $310 on March 17?","run":"15:01","pnl":null,"amount_risked":1.33,"confidence":"high","category":""},{"action":"AUTO_EXIT","question":"Will Tesla (TSLA) close above $400 on March 17?","run":"15:03","exit_type":"STOP_LOSS","pnl":-0.2,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will Venezia FC vs. Calcio Padova end in a draw?","run":"15:08","exit_type":"STOP_LOSS","pnl":-0.22,"amount_risked":null},{"action":"AUTO_EXIT","question":"Exact Score: Manchester City FC 3 - 1 Real Madrid CF?","run":"15:08","exit_type":"PROFIT_TARGET","pnl":1.75,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the highest temperature in Lucknow be 33°C or below on March 18?","run":"17:01","exit_type":"PROFIT_TARGET","pnl":212.25,"amount_risked":null},{"action":"AUTO_EXIT","question":"Manchester City FC vs. Real Madrid CF: O/U 4.5","run":"17:01","exit_type":"STOP_LOSS","pnl":-0.49,"amount_risked":null},{"action":"AUTO_EXIT","question":"Spread: Grizzlies (-2.5)","run":"17:01","exit_type":"STOP_LOSS","pnl":-0.18,"amount_risked":null},{"action":"AUTO_EXIT","question":"Counter-Strike: Leo Team vs Rune Eaters (BO3) - NODWIN Clutch Series Group Stage","run":"17:01","exit_type":"STOP_LOSS","pnl":-1.73,"amount_risked":null},{"action":"RESOLVED","question":"Will Google (GOOGL) close above $310 on March 17?","run":"15:01","outcome":"WIN","pnl":0.08,"amount_risked":null},{"action":"AUTO_BUY","question":"Will Newcastle United FC win on 2026-03-18?","run":"18:04","pnl":null,"amount_risked":8.6,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Naz Reid: Assists O/U 2.5","run":"18:04","pnl":null,"amount_risked":2.65,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will Elon Musk post 215-239 tweets from March 16 to March 18, 2026?","run":"18:04","pnl":null,"amount_risked":4.2,"confidence":"high","category":""},{"action":"AUTO_EXIT","question":"Naz Reid: Assists O/U 2.5","run":"19:01","exit_type":"PROFIT_TARGET","pnl":1.75,"amount_risked":null},{"action":"AUTO_BUY","question":"Counter-Strike: Vitality vs 9z - Map 1 Winner","run":"19:04","pnl":null,"amount_risked":19.25,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will CA Paranaense vs. Cruzeiro EC end in a draw?","run":"19:04","pnl":null,"amount_risked":2.88,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in New York City be between 48-49°F on March 18?","run":"19:04","pnl":null,"amount_risked":7.5,"confidence":"high","category":""},{"action":"AUTO_EXIT","question":"Will the highest temperature in New York City be between 48-49°F on March 18?","run":"20:01","exit_type":"STOP_LOSS","pnl":-3.75,"amount_risked":null},{"action":"AUTO_BUY","question":"Will 'Arirang' - BTS debut week album sales be between 5.5m and 6m?","run":"20:04","pnl":null,"amount_risked":3.71,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Paris be 19°C on March 19?","run":"20:04","pnl":null,"amount_risked":2.91,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Tel Aviv be 24°C on March 19?","run":"20:04","pnl":null,"amount_risked":6.14,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Seoul be 12°C on March 18?","run":"20:04","pnl":null,"amount_risked":7.35,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will SC Braga win on 2026-03-18?","run":"20:04","pnl":null,"amount_risked":8.85,"confidence":"medium","category":""},{"action":"AUTO_EXIT","question":"Spread: Grizzlies (-3.5)","run":"20:26","exit_type":"PROFIT_TARGET","pnl":0.75,"amount_risked":null},{"action":"AUTO_BUY","question":"Will the highest temperature in Toronto be 1°C on March 19?","run":"20:35","pnl":null,"amount_risked":2.45,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Counter-Strike: hindsight vs Rune Eaters (BO3) - ESL Challenger League Europe Cup #2 Playoffs","run":"20:35","pnl":null,"amount_risked":5.99,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Sao Paulo be 27°C on March 19?","run":"20:35","pnl":null,"amount_risked":4.35,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Toronto be -6°C or below on March 18?","run":"20:35","pnl":null,"amount_risked":6.11,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Wellington be 22°C or higher on March 19?","run":"20:35","pnl":null,"amount_risked":2.52,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Paris be 16°C on March 19?","run":"20:35","pnl":null,"amount_risked":9.52,"confidence":"high","category":""},{"action":"AUTO_BUY","question":"Will Tottenham Hotspur FC win on 2026-03-18?","run":"20:35","pnl":null,"amount_risked":4.41,"confidence":"medium","category":""},{"action":"AUTO_BUY","question":"Will the highest temperature in Seoul be 9°C on March 18?","run":"21:06","pnl":null,"amount_risked":6.06,"confidence":"high","category":"weather"},{"action":"AUTO_BUY","question":"Spread: Tottenham Hotspur FC (-1.5)","run":"21:06","pnl":null,"amount_risked":1.69,"confidence":"medium","category":"sports"},{"action":"AUTO_BUY","question":"Will Liverpool FC win on 2026-03-18?","run":"21:06","pnl":null,"amount_risked":15.0,"confidence":"high","category":"sports"},{"action":"AUTO_EXIT","question":"Will the highest temperature in Seoul be 9°C on March 18?","run":"21:31","exit_type":"STOP_LOSS","pnl":-2.55,"amount_risked":null},{"action":"RESOLVED","question":"Will the highest temperature in London be 16°C on March 17?","run":"22:11","outcome":"WIN","pnl":2.73,"amount_risked":null},{"action":"AUTO_EXIT","question":"Counter-Strike: hindsight vs Rune Eaters (BO3) - ESL Challenger League Europe Cup #2 Playoffs","run":"05:29","exit_type":"PROFIT_TARGET","pnl":13.87,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the price of Bitcoin be above $74,000 on March 18?","run":"06:37","exit_type":"STOP_LOSS","pnl":-0.32,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will Kocaelispor win on 2026-03-18?","run":"08:39","exit_type":"STOP_LOSS","pnl":-0.38,"amount_risked":null},{"action":"AUTO_EXIT","question":"Game Handicap: BLG (-2.5) vs G2 Esports (+2.5)","run":"09:19","exit_type":"PROFIT_TARGET","pnl":0.35,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the price of Bitcoin be above $72,000 on March 18?","run":"09:35","exit_type":"STOP_LOSS","pnl":-0.13,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will SC Braga win on 2026-03-18?","run":"09:45","exit_type":"TIME_DECAY_EXIT","pnl":0.27,"amount_risked":null},{"action":"BUY","question":"Spread: Lehigh Mountain Hawks (-3.5)","run":"11:24","pnl":null,"amount_risked":4.77,"confidence":"","category":""},{"action":"AUTO_EXIT","question":"Will Newcastle United FC win on 2026-03-18?","run":"12:29","exit_type":"TIME_DECAY_EXIT","pnl":0.46,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will Tottenham Hotspur FC win on 2026-03-18?","run":"14:02","exit_type":"TIME_DECAY_EXIT","pnl":0.23,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will Liverpool FC win on 2026-03-18?","run":"14:12","exit_type":"TIME_DECAY_EXIT","pnl":0.4,"amount_risked":null},{"action":"AUTO_EXIT","question":"Spread: Tottenham Hotspur FC (-1.5)","run":"15:34","exit_type":"PROFIT_TARGET","pnl":1.55,"amount_risked":null},{"action":"AUTO_EXIT","question":"Liverpool FC vs. Galatasaray SK: O/U 4.5","run":"15:49","exit_type":"STOP_LOSS","pnl":-0.23,"amount_risked":null},{"action":"AUTO_EXIT","question":"Will the highest temperature in Paris be 16°C on March 19?","run":"16:09","exit_type":"STOP_LOSS","pnl":-3.93,"amount_risked":null},{"action":"AUTO_BUY","question":"Will CA Paranaense vs. Cruzeiro EC end in a draw?","run":"16:14","pnl":null,"amount_risked":2.88,"confidence":"","category":""},{"action":"AUTO_BUY","question":"Spread: Miami (OH) RedHawks (+6.5)","run":"16:18","pnl":null,"amount_risked":5.0,"confidence":"medium","category":"sports"},{"action":"BUY","question":"Will Olympique Lyonnais win on 2026-03-19?","run":"17:51","pnl":null,"amount_risked":0,"confidence":"","category":"sports"},{"action":"BUY","question":"Sabres vs. Sharks: O/U 6.5","run":"17:51","pnl":null,"amount_risked":0,"confidence":"","category":"sports"},{"action":"AUTO_EXIT","question":"Spread: Lehigh Mountain Hawks (-3.5)","run":"19:09","exit_type":"STOP_LOSS","pnl":-2.86,"amount_risked":null},{"action":"AUTO_BUY","question":"Will ChatGPT be #1 Free App in US Apple App Store on March 19?","run":"19:29","pnl":null,"amount_risked":16.89,"confidence":0.85,"category":"daily_binary"},{"action":"AUTO_BUY","question":"Will EC Vitória win on 2026-03-19?","run":"19:29","pnl":null,"amount_risked":8.44,"confidence":0.6,"category":"sports_international"},{"action":"AUTO_EXIT","question":"Will the highest temperature in Sao Paulo be 27°C on March 19?","run":"21:57","exit_type":"STOP_LOSS","pnl":-1.74,"amount_risked":null}];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const EQUITY = [{"time":"19 6AM","bal":246.39},{"time":"19 6AM","bal":246.39},{"time":"19 6AM","bal":246.39},{"time":"19 6AM","bal":246.39},{"time":"19 6AM","bal":246.39},{"time":"19 6AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":246.39},{"time":"19 7AM","bal":231.39},{"time":"19 8AM","bal":231.39},{"time":"19 8AM","bal":231.39},{"time":"19 8AM","bal":231.39},{"time":"19 8AM","bal":231.39},{"time":"19 8AM","bal":231.39}];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getNextRun() {
+  var now = new Date(), m = now.getMinutes();
+  // Quick cycle every 5 min, full pipeline every 15 min
+  var nextQuick = Math.ceil((m + 1) / 5) * 5;
+  var minsToQuick = nextQuick - m;
+  if (minsToQuick <= 0) minsToQuick = 5;
+  var nextFull = Math.ceil((m + 1) / 15) * 15;
+  var minsToFull = nextFull - m;
+  if (minsToFull <= 0) minsToFull = 15;
+  var isFull = minsToQuick === minsToFull;
+  var mins = minsToQuick;
+  var d = new Date(now.getTime() + mins * 60000);
+  var hr12 = d.getHours() === 0 ? 12 : d.getHours() > 12 ? d.getHours() - 12 : d.getHours();
+  var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+  var label = hr12 + ":" + mm + " " + (d.getHours() >= 12 ? "PM" : "AM") + (isFull ? " (FULL)" : " (QUICK)");
+  return { mins: mins, label: label, hour: d.getHours(), type: isFull ? "full" : "quick" };
+}
+
+function getCurrentWindow() {
+  var h = new Date().getHours();
+  if (h >= 22 || h < 6) return "LATE_NIGHT";
+  if (h < 9) return "EARLY_AM";
+  if (h < 12) return "MORNING";
+  if (h < 17) return "AFTERNOON";
+  return "EVENING";
+}
+
+function classifyWindow(endDate) {
+  if (!endDate) return "UNKNOWN";
+  var h = (new Date(endDate).getUTCHours() + CDT_OFFSET + 24) % 24;
+  if (h >= 22 || h < 6) return "LATE_NIGHT";
+  if (h < 9) return "EARLY_AM";
+  if (h < 12) return "MORNING";
+  if (h < 17) return "AFTERNOON";
+  return "EVENING";
+}
+
+function classifyType(question) {
+  var q = question.toLowerCase();
+  if (q.indexOf("up or down") >= 0 || /\d+(am|pm) et/.test(q)) return "crypto_micro";
+  if (q.indexOf("temperature") >= 0 || q.indexOf("\u00b0") >= 0) return "weather_daily";
+  if (q.indexOf("earnings") >= 0 || q.indexOf("beat") >= 0) return "earnings_events";
+  var intl = ["premier", "champions", "la liga", "bundesliga", "serie a", "cricket", "f1", "tennis", "afl"];
+  if (q.indexOf("vs") >= 0 || q.indexOf("spread") >= 0 || q.indexOf("o/u") >= 0) {
+    return intl.some(function(x) { return q.indexOf(x) >= 0; }) ? "sports_international" : "sports_tonight";
+  }
+  return "daily_binary";
+}
+
+function fetchLiveMarkets(limit) {
+  limit = limit || 50;
+  return Promise.all([
+    fetch(GAMMA_API + "/markets?limit=" + limit + "&active=true&closed=false&order=volume&ascending=false").then(function(r) { return r.json(); }),
+    fetch(GAMMA_API + "/markets?limit=" + limit + "&active=true&closed=false&order=liquidity&ascending=false").then(function(r) { return r.json(); }),
+  ]).then(function(results) {
+    var all = results[0].concat(results[1]);
+    var seen = {}, out = [];
+    all.forEach(function(m) {
+      if (seen[m.id]) return; seen[m.id] = true;
+      try {
+        var pr = typeof m.outcomePrices === "string" ? JSON.parse(m.outcomePrices) : m.outcomePrices || [];
+        if (pr.length && pr.every(function(p) { return parseFloat(p) === 0 || parseFloat(p) === 1; })) return;
+        if (m.closed || m.resolved || !m.endDate) return;
+        var hrs = (new Date(m.endDate) - new Date()) / 3600000;
+        if (hrs > 0 && hrs <= 72) {
+          out.push({ id: m.id, question: m.question, yesPrice: parseFloat(pr[0] || 0), liquidity: parseFloat(m.liquidity || 0), volume: parseFloat(m.volume || 0), hoursLeft: hrs, window: classifyWindow(m.endDate) });
+        }
+      } catch(e) {}
+    });
+    return out.sort(function(a, b) { return a.hoursLeft - b.hoursLeft; });
+  }).catch(function() { return []; });
+}
+
+function renderStats(markets) {
+  var positions = Object.entries(SIM_STATE.positions);
+  var invested = positions.reduce(function(s, e) { return s + e[1].amount_risked; }, 0);
+  var portfolio = SIM_STATE.cash + invested;
+  var pnl = portfolio - SIM_STATE.starting_capital;
+  var resolved = SIM_HISTORY.filter(function(h) { return h.action.indexOf("RESOLVED") >= 0; });
+  var wins = resolved.filter(function(h) { return h.outcome === "WIN"; }).length;
+  var winRate = resolved.length > 0 ? Math.round((wins / resolved.length) * 100) : 0;
+
+  var sharpe = SIM_STATE.sharpe || 0;
+  var maxDD = SIM_STATE.max_dd_pct || 0;
+  var daysTo10x = SIM_STATE.days_to_10x || "N/A";
+
+  // Week tracking — epoch: March 16, 2026 (first deployment)
+  var epochMs = new Date("2026-03-16T00:00:00-05:00").getTime();
+  var weekNum = Math.max(1, Math.ceil((Date.now() - epochMs) / (7 * 24 * 60 * 60 * 1000)));
+  var dayInWeek = Math.ceil(((Date.now() - epochMs) % (7 * 24 * 60 * 60 * 1000)) / (86400000)) || 1;
+  var weekTarget = SIM_STATE.starting_capital * Math.pow(10, weekNum);
+  var prevWeekTarget = weekNum > 1 ? SIM_STATE.starting_capital * Math.pow(10, weekNum - 1) : SIM_STATE.starting_capital;
+
+  var heatLevel = SIM_STATE.heat_level || "NORMAL";
+  var heatMult = SIM_STATE.heat_sizing_mult || 1.0;
+  var heatDD = SIM_STATE.heat_drawdown_pct || 0;
+  var heatColor = heatLevel === "NORMAL" ? "var(--green)" : heatLevel === "WARNING" ? "var(--yellow)" : heatLevel === "CRITICAL" ? "var(--accent)" : "var(--red)";
+
+  var stats = [
+    { label: "Portfolio", value: "$" + portfolio.toFixed(2), sub: "$" + SIM_STATE.starting_capital + " start", color: "var(--text)" },
+    { label: "Cash", value: "$" + SIM_STATE.cash.toFixed(2), sub: ((SIM_STATE.cash / portfolio) * 100).toFixed(0) + "% avail", color: "var(--blue)" },
+    { label: "P&L", value: (pnl >= 0 ? "+" : "") + "$" + pnl.toFixed(2), sub: ((pnl / SIM_STATE.starting_capital) * 100).toFixed(1) + "%", color: pnl >= 0 ? "var(--green)" : "var(--red)" },
+    { label: "Heat", value: heatLevel, sub: (heatMult * 100).toFixed(0) + "% sizing · " + (heatDD * 100).toFixed(1) + "% DD", color: heatColor },
+    { label: "Open", value: positions.length, sub: "$" + invested.toFixed(2) + " deployed", color: "var(--purple)" },
+    { label: "Trades", value: SIM_STATE.total_trades, sub: winRate + "% win rate", color: "var(--text)" },
+    { label: "Sharpe", value: sharpe.toFixed(2), sub: "target: 2.31", color: sharpe >= 2.0 ? "var(--green)" : sharpe >= 1.0 ? "var(--yellow)" : "var(--dim)" },
+    { label: "Max DD", value: "-" + maxDD.toFixed(1) + "%", sub: "target: -3.8%", color: maxDD <= 5 ? "var(--green)" : maxDD <= 15 ? "var(--yellow)" : "var(--red)" },
+    { label: "WEEK " + weekNum, value: ((portfolio / (SIM_STATE.starting_capital * 10)) * 100).toFixed(0) + "%", sub: "Day " + dayInWeek + "/7 · $" + portfolio.toFixed(0) + " / $" + (SIM_STATE.starting_capital * 10).toFixed(0) + " target", color: portfolio >= SIM_STATE.starting_capital * 10 ? "var(--green)" : portfolio >= SIM_STATE.starting_capital * 5 ? "var(--yellow)" : "var(--accent)" },
+    { label: "Sprint Pool", value: markets.length, sub: "< 72h markets", color: "var(--yellow)" },
+  ];
+
+  document.getElementById("stats-grid").innerHTML = stats.map(function(s) {
+    return '<div class="stat"><div class="stat-label">' + s.label + '</div><div class="stat-value" style="color:' + s.color + '">' + s.value + '</div><div class="stat-sub">' + s.sub + '</div></div>';
+  }).join("");
+
+  // Update header badge week number
+  var hwEl = document.getElementById("header-week");
+  if (hwEl) hwEl.textContent = weekNum;
+}
+
+function renderHeader() {
+  var nr = getNextRun(), cw = getCurrentWindow();
+  var typeColor = nr.type === "full" ? "var(--green)" : "var(--yellow)";
+  document.getElementById("header-sub").innerHTML = '10x VELOCITY &middot; Quick &#8634;5min · Full &#8634;15min (384x/day) &middot; Next: <span style="color:' + typeColor + ';font-weight:600">' + nr.label + '</span> (' + nr.mins + 'm) &middot; Window: <span style="color:' + WINDOW_COLORS[cw] + ';font-weight:600">' + cw.replace("_", " ") + '</span>';
+}
+
+function renderSchedule() {
+  var h = new Date().getHours(), nr = getNextRun();
+  var nextIdx = -1;
+  for (var i = 0; i < SCHEDULE.length; i++) { if (SCHEDULE[i].hour > h) { nextIdx = i; break; } }
+  var container = document.getElementById("schedule-row");
+  container.style.display = "grid";
+  container.style.gridTemplateColumns = "repeat(24, 1fr)";
+  container.style.gap = "4px";
+  container.className = "";
+  container.innerHTML = SCHEDULE.map(function(s, i) {
+    var isPast = s.hour <= h, isNext = i === nextIdx;
+    var bg = isNext ? 'var(--accent-dim)' : isPast ? 'var(--card-alt)' : 'transparent';
+    var bdr = isNext ? 'var(--accent)' : 'var(--border)';
+    return '<div style="padding:8px 4px;border-radius:6px;background:' + bg + ';border:1px solid ' + bdr + ';text-align:center">' +
+      '<div style="font-size:11px;font-weight:700;color:' + (isNext ? 'var(--accent)' : isPast ? 'var(--dim)' : 'var(--text)') + '">' + s.time + '</div>' +
+      '<div style="font-size:9px;color:' + (isNext ? 'var(--text)' : 'var(--dim)') + ';margin-top:1px">' + s.label + '</div>' +
+      (isPast && !isNext ? '<div style="font-size:9px;color:var(--green);margin-top:2px">&#10003;</div>' : '') +
+      (isNext ? '<div style="font-size:9px;color:var(--accent);margin-top:2px;font-weight:600">' + nr.mins + 'm</div>' : '') +
+      '</div>';
+  }).join("");
+}
+
+function renderEquityChart() {
+  var canvas = document.getElementById("equityChart");
+  var ctx = canvas.getContext("2d");
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.parentElement.clientWidth - 32;
+  canvas.width = W * dpr; canvas.height = 170 * dpr;
+  canvas.style.width = W + "px"; canvas.style.height = "170px";
+  ctx.scale(dpr, dpr);
+  var H = 170, pad = { t: 10, r: 10, b: 30, l: 45 };
+  var cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+
+  var vals = EQUITY.map(function(d) { return d.bal; });
+  var mn = Math.min.apply(null, vals) - 1, mx = Math.max.apply(null, vals) + 1;
+
+  ctx.strokeStyle = "#2a2e3f"; ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var y = pad.t + (cH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = "#8891a8"; ctx.font = "10px monospace"; ctx.textAlign = "right";
+    ctx.fillText("$" + (mx - (mx - mn) * (i / 4)).toFixed(1), pad.l - 6, y + 3);
+  }
+
+  ctx.fillStyle = "#8891a8"; ctx.font = "9px sans-serif"; ctx.textAlign = "center";
+  EQUITY.forEach(function(d, i) {
+    var x = pad.l + (cW / (EQUITY.length - 1)) * i;
+    ctx.fillText(d.time, x, H - 6);
+  });
+
+  var grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
+  grad.addColorStop(0, "rgba(232,87,31,0.3)"); grad.addColorStop(1, "rgba(232,87,31,0)");
+
+  ctx.beginPath();
+  EQUITY.forEach(function(d, i) {
+    var x = pad.l + (cW / (EQUITY.length - 1)) * i;
+    var yv = pad.t + cH * (1 - (d.bal - mn) / (mx - mn));
+    i === 0 ? ctx.moveTo(x, yv) : ctx.lineTo(x, yv);
+  });
+  ctx.lineTo(pad.l + cW, H - pad.b); ctx.lineTo(pad.l, H - pad.b); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  ctx.beginPath();
+  EQUITY.forEach(function(d, i) {
+    var x = pad.l + (cW / (EQUITY.length - 1)) * i;
+    var yv = pad.t + cH * (1 - (d.bal - mn) / (mx - mn));
+    i === 0 ? ctx.moveTo(x, yv) : ctx.lineTo(x, yv);
+  });
+  ctx.strokeStyle = "#E8571F"; ctx.lineWidth = 2; ctx.stroke();
+
+  EQUITY.forEach(function(d, i) {
+    var x = pad.l + (cW / (EQUITY.length - 1)) * i;
+    var yv = pad.t + cH * (1 - (d.bal - mn) / (mx - mn));
+    ctx.beginPath(); ctx.arc(x, yv, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#E8571F"; ctx.fill();
+  });
+}
+
+function renderWindows(markets) {
+  var cw = getCurrentWindow(), wCounts = {};
+  markets.forEach(function(m) { wCounts[m.window] = (wCounts[m.window] || 0) + 1; });
+
+  document.getElementById("window-boxes").innerHTML = WINDOW_ORDER.map(function(w) {
+    var cnt = wCounts[w] || 0, isAct = w === cw, col = WINDOW_COLORS[w];
+    return '<div class="window-box' + (isAct ? ' active' : '') + '" style="' + (isAct ? 'border-color:' + col + ';background:' + col + '20' : '') + '">' +
+      '<div class="mono" style="font-size:20px;font-weight:700;color:' + col + '">' + cnt + '</div>' +
+      '<div style="font-size:9px;color:var(--dim);margin-top:2px">' + w.replace("_", " ") + '</div>' +
+      (isAct ? '<div style="font-size:8px;color:' + col + ';margin-top:2px;font-weight:700">&#9679; NOW</div>' : '') +
+      '</div>';
+  }).join("");
+
+  document.getElementById("window-info").innerHTML =
+    '<strong style="color:var(--text)">Overnight pattern:</strong> Enter <span style="color:' + WINDOW_COLORS.EVENING + '">EVENING</span> positions &rarr; auto-resolve by <span style="color:' + WINDOW_COLORS.EARLY_AM + '">EARLY AM</span><br>' +
+    markets.length + ' markets within 72h &middot; Intl sports, crypto, weather cycle overnight';
+}
+
+function renderRunHistory() {
+  var header = '<div class="run-row run-header"><span>Run</span><span style="text-align:right">Scan</span><span style="text-align:right">Sig</span><span style="text-align:right">Trade</span><span style="text-align:right">Exit</span><span style="text-align:right">Res</span><span style="text-align:right">Heat</span><span style="text-align:right">P&L</span><span style="text-align:right">Cash</span></div>';
+  var rows = SCHEDULE_HISTORY.map(function(r, i) {
+    var pnlColor = r.pnl > 0 ? "var(--green)" : r.pnl < 0 ? "var(--red)" : "var(--dim)";
+    var pnlText = r.pnl ? (r.pnl > 0 ? "+" : "") + "$" + r.pnl.toFixed(2) : "&mdash;";
+    var exits = r.exits || 0;
+    var heat = r.heat || "NORMAL";
+    var heatColor = heat === "NORMAL" ? "var(--green)" : heat === "WARNING" ? "var(--yellow)" : heat === "CRITICAL" ? "var(--orange)" : heat === "MAX_HEAT" ? "var(--red)" : "var(--dim)";
+    var ver = r.version ? '<span style="font-size:8px;color:var(--dim);margin-left:2px">v' + r.version + '</span>' : '';
+    return '<div class="run-row ' + (i % 2 === 0 ? 'alt' : '') + '">' +
+      '<span class="mono" style="font-size:11px">' + r.run + ver + '</span>' +
+      '<span style="text-align:right;color:var(--dim)">' + r.scanned + '</span>' +
+      '<span style="text-align:right;color:var(--yellow)">' + r.signals + '</span>' +
+      '<span style="text-align:right;color:var(--blue)">' + r.traded + '</span>' +
+      '<span style="text-align:right;color:' + (exits ? 'var(--orange)' : 'var(--dim)') + '">' + exits + '</span>' +
+      '<span style="text-align:right;color:' + (r.resolved ? 'var(--green)' : 'var(--dim)') + '">' + r.resolved + '</span>' +
+      '<span style="text-align:right;font-size:10px;color:' + heatColor + '">' + heat + '</span>' +
+      '<span class="mono" style="text-align:right;color:' + pnlColor + '">' + pnlText + '</span>' +
+      '<span class="mono" style="text-align:right">$' + r.cash.toFixed(2) + '</span></div>';
+  }).join("");
+  document.getElementById("run-history").innerHTML = header + rows;
+}
+
+function renderPositions() {
+  var positions = Object.entries(SIM_STATE.positions);
+  document.getElementById("positions-title").textContent = "Open Positions (" + positions.length + ")";
+  document.getElementById("open-positions").innerHTML = positions.map(function(entry, i) {
+    var pid = entry[0], pos = entry[1];
+    var dirColor = pos.direction === "yes" ? "var(--green)" : "var(--red)";
+    var confBg = pos.confidence === "high" ? "var(--green-dim)" : "var(--yellow-dim)";
+    var confColor = pos.confidence === "high" ? "var(--green)" : "var(--yellow)";
+    return '<div class="pos-row ' + (i % 2 === 0 ? 'alt' : '') + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span class="ellipsis" style="flex:1">' + pos.question + '<span class="badge-auto">AUTO</span></span>' +
+        '<div style="display:flex;gap:10px;align-items:center;flex-shrink:0">' +
+          '<span style="color:' + dirColor + ';font-weight:600;font-size:11px">' + pos.direction.toUpperCase() + '</span>' +
+          '<span class="mono">$' + pos.amount_risked.toFixed(2) + '</span>' +
+          '<span class="mono" style="color:var(--blue);font-size:11px">+' + (pos.ev_at_entry * 100).toFixed(1) + '%</span>' +
+          '<span style="padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;background:' + confBg + ';color:' + confColor + '">' + pos.confidence + '</span>' +
+        '</div></div>' +
+      '<div style="display:flex;gap:10px;margin-top:3px;font-size:10px;color:var(--dim)">' +
+        '<span>Type: <span style="color:' + (TYPE_COLORS[pos.sprint_type] || 'var(--dim)') + '">' + (pos.sprint_type || '?').replace(/_/g, ' ') + '</span></span>' +
+        '<span>Window: <span style="color:' + (WINDOW_COLORS[pos.resolve_window] || 'var(--dim)') + '">' + (pos.resolve_window || '?').replace('_', ' ') + '</span></span>' +
+        '<span>$' + pos.entry_price.toFixed(3) + ' &times; ' + pos.shares.toFixed(1) + ' shares</span>' +
+      '</div></div>';
+  }).join("");
+}
+
+function renderTradeLog() {
+  document.getElementById("trade-log").innerHTML = SIM_HISTORY.slice().reverse().map(function(h, i) {
+    var isBuy = h.action.indexOf("BUY") >= 0, isWin = h.outcome === "WIN";
+    var col = isBuy ? "var(--blue)" : isWin ? "var(--green)" : "var(--red)";
+    var pnlHtml = h.pnl != null ? '<span class="mono" style="font-weight:600;color:' + (h.pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (h.pnl >= 0 ? '+' : '') + '$' + h.pnl.toFixed(2) + '</span>' : '';
+    var riskHtml = isBuy && h.amount_risked ? '<span class="mono" style="color:var(--dim);font-size:11px">$' + h.amount_risked.toFixed(2) + '</span>' : '';
+    return '<div class="log-row ' + (i % 2 === 0 ? 'alt' : '') + '">' +
+      '<span class="dot" style="background:' + col + '"></span>' +
+      '<span class="mono" style="color:var(--dim);font-size:10px;width:36px">' + h.run + '</span>' +
+      '<span style="width:60px;font-weight:600;font-size:11px;color:' + col + '">' + h.action.replace('AUTO_', '') + '</span>' +
+      '<span class="ellipsis" style="flex:1">' + h.question + '</span>' +
+      pnlHtml + riskHtml + '</div>';
+  }).join("");
+}
+
+function renderPieChart(markets) {
+  var types = {};
+  markets.forEach(function(m) { var t = classifyType(m.question); types[t] = (types[t] || 0) + 1; });
+  var entries = Object.entries(types).sort(function(a, b) { return b[1] - a[1]; });
+  var total = entries.reduce(function(s, e) { return s + e[1]; }, 0) || 1;
+
+  var canvas = document.getElementById("pieChart");
+  var ctx = canvas.getContext("2d");
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = 160 * dpr; canvas.height = 160 * dpr;
+  canvas.style.width = "160px"; canvas.style.height = "160px";
+  ctx.scale(dpr, dpr);
+
+  var cx = 80, cy = 80, outer = 65, inner = 35, angle = -Math.PI / 2;
+  entries.forEach(function(entry) {
+    var t = entry[0], v = entry[1];
+    var sweep = (v / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outer, angle, angle + sweep);
+    ctx.arc(cx, cy, inner, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = TYPE_COLORS[t] || "#8891a8";
+    ctx.fill();
+    angle += sweep + 0.03;
+  });
+
+  document.getElementById("type-legend").innerHTML = entries.map(function(entry) {
+    return '<div class="legend-item"><div class="legend-dot" style="background:' + (TYPE_COLORS[entry[0]] || '#8891a8') + '"></div>' +
+      '<span style="color:var(--dim);font-size:11px;flex:1">' + entry[0].replace(/_/g, ' ') + '</span>' +
+      '<span class="mono" style="font-size:12px;font-weight:600">' + entry[1] + '</span></div>';
+  }).join("");
+}
+
+function init() {
+  renderHeader();
+  renderSchedule();
+  renderRunHistory();
+  renderPositions();
+  renderTradeLog();
+
+  fetchLiveMarkets(50).then(function(markets) {
+    renderStats(markets);
+    renderEquityChart();
+    renderWindows(markets);
+    renderPieChart(markets);
+    document.getElementById("footer-refresh").innerHTML = 'Armorstack Research &middot; Last refresh: ' + new Date().toLocaleTimeString() + ' &middot; Auto-refreshes every 5 min';
+  });
+}
+
+init();
+setInterval(function() {
+  fetchLiveMarkets(50).then(function(markets) {
+    renderHeader();
+    renderSchedule();
+    renderStats(markets);
+    renderWindows(markets);
+    renderPieChart(markets);
+    document.getElementById("footer-refresh").innerHTML = 'Armorstack Research &middot; Last refresh: ' + new Date().toLocaleTimeString() + ' &middot; Auto-refreshes every 5 min';
+  });
+}, 300000);
+</script>
+</body>
+</html>
